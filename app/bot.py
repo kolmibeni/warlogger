@@ -20,20 +20,26 @@ intents = discord.Intents.default()
 bot = commands.Bot(command_prefix='>', intents=intents)
 
 
-# RESPOND TO EVENTS
+def get_today_filename():
+    todayDate = str(datetime.datetime.now().date())
+    filename = todayDate + '_voice.json'
+    return filename
 
+# RESPOND TO EVENTS
 @bot.event
 async def on_ready():
     print(f'{bot.user.name} has connected to Discord!')
-    todayDate = str(datetime.datetime.now().date())
-    filename = todayDate + '_voice.json'
+    
+    filename = get_today_filename()
     
     if not os.path.isfile(filename):
         data = {}
         jsonFile = open(filename, 'w')
         json.dump(data, jsonFile)
         jsonFile.close()
-        print(f'Log file does not exists. {filename} has been created.')
+        print(f'Log file does not exist. {filename} has been created.')
+    else:
+        print(f'Log file exists. Records stored in {filename}')
 
 @bot.event
 async def on_member_join(member):
@@ -75,7 +81,8 @@ async def on_error(event, *args, **kwargs):
 @bot.event
 # async def on_voice_state_update(self, member:discord.Member, before:discord.VoiceState, after:discord.VoiceState):
 async def on_voice_state_update(member:discord.Member, before, after):    
-    jsonFile = open('voice.json', 'r')
+    filename = get_today_filename()
+    jsonFile = open(filename, 'r')
     data = json.load(jsonFile)
     jsonFile.close()
 
@@ -83,24 +90,29 @@ async def on_voice_state_update(member:discord.Member, before, after):
     ch_after = str(after.channel)
     member_name = str(member.display_name)
 
-    if member_name not in data:
+    if member_name not in data: #no member record, create new
+        print("jancok")
         data[member_name] = {}
-
-    if ch_before != CHANNEL_NAME and ch_after == CHANNEL_NAME: 
-        print(f'{datetime.datetime.now()}: {member_name} joined {ch_after}')        
-
-        data[member_name]["join_time"] = str(datetime.datetime.now())
         data[member_name]["name"] = member_name
-        # print(data)
+        data[member_name]["join_time"] = {}
+        data[member_name]["leave_time"] = {}
+
+    counter_join = len(data[member_name]["join_time"])
+    counter_leave = len(data[member_name]["leave_time"])
+
+    if ch_before != CHANNEL_NAME and ch_after == CHANNEL_NAME: #joining channel
+        print(f'{datetime.datetime.now()}: {member_name} joined {ch_after}')                
         
-    elif ch_before == CHANNEL_NAME and ch_after != CHANNEL_NAME: 
+        data[member_name]["join_time"][str(counter_join+1)] = str(datetime.datetime.now())
+        # print(data[member_name]["join_time"])
+        
+    elif ch_before == CHANNEL_NAME and ch_after != CHANNEL_NAME: #leaving channel
         print(f'{datetime.datetime.now()}: {member_name} left {ch_before}')
 
-        data[member_name]["leave_time"] = str(datetime.datetime.now())
-        data[member_name]["name"] = member_name
+        data[member_name]["leave_time"][str(counter_leave+1)] = str(datetime.datetime.now())
         # print(data)        
 
-    jsonFile = open('voice.json', 'w')
+    jsonFile = open(filename, 'w')
     json.dump(data, jsonFile)
     jsonFile.close()
 
