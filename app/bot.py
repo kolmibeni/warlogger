@@ -20,7 +20,7 @@ intents = discord.Intents.default()
 bot = commands.Bot(command_prefix='>', intents=intents)
 
 
-def get_today_filename():
+def get_filename_today():
     todayDate = str(datetime.datetime.now().date())
     filename = todayDate + '_voice.json'
     return filename
@@ -30,7 +30,7 @@ def get_today_filename():
 async def on_ready():
     print(f'{bot.user.name} has connected to Discord!')
     
-    filename = get_today_filename()
+    filename = get_filename_today()
     
     if not os.path.isfile(filename):
         data = {}
@@ -81,7 +81,7 @@ async def on_error(event, *args, **kwargs):
 @bot.event
 # async def on_voice_state_update(self, member:discord.Member, before:discord.VoiceState, after:discord.VoiceState):
 async def on_voice_state_update(member:discord.Member, before, after):    
-    filename = get_today_filename()
+    filename = get_filename_today()
     jsonFile = open(filename, 'r')
     data = json.load(jsonFile)
     jsonFile.close()
@@ -122,39 +122,65 @@ async def on_voice_state_update(member:discord.Member, before, after):
 
 @bot.command(name = "absendc", help='Get WOE/WOC Discord attendance list')
 async def  generate_absen_discord(ctx):
-    jsonFile = open('voice.json', 'r')
+    filename = get_filename_today()
+    jsonFile = open(filename, 'r')
     data = json.load(jsonFile)
     jsonFile.close()
-
+    
+    now = datetime.datetime.now()
     online_members = "Online Members : \n"
-    counter = 1
+    counter_member = 1
+    weekday = now.weekday()
 
-    for member in data.values():
-        # print(member["join_time"])
+    if weekday == 3: #if THURSDAY (WOE)
+        online_threshold = float(os.getenv('ONLINE_TIME_WOE'))
+    else: #if SUNDAY (WOC)
+        online_threshold = float(os.getenv('ONLINE_TIME_WOC'))
+
+    for member in data.values(): # for each member
+        # print(member["join_time"]["1"])
+        # print(len(member["join_time"]))
+        # print(len(member["leave_time"]))
         # 2022-05-05 18:36:53.671941        
-        now = datetime.datetime.now()
+        check_in_time = now.replace(hour=21, minute=00, second=0, microsecond=0).time()
 
-        if "join_time" in member:
-            join_time = datetime.datetime.strptime(member["join_time"], "%Y-%m-%d %H:%M:%S.%f").time()
-        else:
-            join_time = now.replace(hour=22, minute=00, second=0, microsecond=0).time()
+        counter_join = 1
+        war_duration = 0
 
-        if "leave_time" in member:
-            leave_time = datetime.datetime.strptime(member["leave_time"], "%Y-%m-%d %H:%M:%S.%f").time()
-        else:
-            leave_time = now.replace(hour=22, minute=00, second=0, microsecond=0).time()
+        for join in member["join_time"]: # for each join time record in each member
+            
+            # get join time, should exist by default otherwise said member would have no record at all
+            join_time = datetime.datetime.strptime(member["join_time"][str(counter_join)], "%Y-%m-%d %H:%M:%S.%f")
+
+            # only join_time after check_in_time is counted
+            # to filter out join_time that is non-related with WOE/WOC
+            if join_time.time() >= check_in_time: 
+            # if 1==1:
+                        
+                if str(counter_join) in member["leave_time"]: # if member has a matching leave time, means already leave the channel
+                    leave_time = datetime.datetime.strptime(member["leave_time"][str(counter_join)], "%Y-%m-%d %H:%M:%S.%f")
+                else: # if member hasn't leave the channel since last join, then:
+                    # assumption 1: leave time is 2300
+                    # leave_time = now.replace(hour=23, minute=00, second=0, microsecond=0)
+
+                    # assumption 2: leave time is now, when record is collected
+                    leave_time = now 
+
+                # get difference in minutes
+                minutes_diff = (leave_time - join_time).total_seconds() / 60.0   
+
+                # accumulate online duration
+                war_duration += minutes_diff
+                
+                # forward counter to the next join record
+                counter_join += 1            
         
-        check_in_time = now.replace(hour=21, minute=30, second=0, microsecond=0).time()
-        check_out_time = now.replace(hour=22, minute=30, second=0, microsecond=0).time()
-        print(join_time)
-        if join_time < check_out_time and leave_time > check_out_time:
-            print("jancok")
-            online_members += f'{str(counter)}. {member["name"]}\n'
-            # online_members += f'{str(counter)}. {member["name"]} - [IN={join_time}] - [OUT={leave_time}] \n'
-            counter+=1
-
-    # members = '\n - '.join([member.name for member in guild.members])
-    # print(f'Guild Members:\n - {members}')
+        # print(war_duration)
+        if war_duration >= online_threshold:
+        # if 1==1:
+            online_members += f'{str(counter_member)}. {member["name"]} [{round(war_duration,2)}mins]\n'
+            counter_member+=1        
+    
     await ctx.send(online_members)
 
 @bot.command(name='99', help='Responds with a random quote from Brooklyn 99')
