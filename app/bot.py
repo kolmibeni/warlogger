@@ -211,5 +211,9 @@ async def roll(ctx):
     
     await ctx.send('You roll '.join(num))
 
+@bot.command(name='set_status', help='Set bot status into a predefined activity.')
+async def set_status(ctx):
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name="Dangdut Pantura"))
+
 
 bot.run(TOKEN)
