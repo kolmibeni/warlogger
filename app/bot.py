@@ -128,9 +128,12 @@ async def  generate_absen_discord(ctx):
     jsonFile.close()
     
     now = datetime.datetime.now()
-    online_members = "Online Members : \n"
+    pretext = "Online Members : \n"
+    online_members = ""
     counter_member = 1
     weekday = now.weekday()
+    online_members_under = ""
+    counter_member_under = 1
 
     if weekday == 3: #if THURSDAY (WOE)
         online_threshold = float(os.getenv('ONLINE_TIME_WOE'))
@@ -151,12 +154,13 @@ async def  generate_absen_discord(ctx):
             
             # get join time, should exist by default otherwise said member would have no record at all
             join_time = datetime.datetime.strptime(member["join_time"][str(counter_join)], "%Y-%m-%d %H:%M:%S.%f")
+            # print(member["name"])
+            # print(join_time)
 
             # only join_time after check_in_time is counted
             # to filter out join_time that is non-related with WOE/WOC
             if join_time.time() >= check_in_time: 
             # if 1==1:
-                        
                 if str(counter_join) in member["leave_time"]: # if member has a matching leave time, means already leave the channel
                     leave_time = datetime.datetime.strptime(member["leave_time"][str(counter_join)], "%Y-%m-%d %H:%M:%S.%f")
                 else: # if member hasn't leave the channel since last join, then:
@@ -172,16 +176,22 @@ async def  generate_absen_discord(ctx):
                 # accumulate online duration
                 war_duration += minutes_diff
                 
-                # forward counter to the next join record
-                counter_join += 1            
+            # forward counter to the next join record
+            counter_join += 1            
         
         # print(war_duration)
         if war_duration >= online_threshold:
         # if 1==1:
-            online_members += f'{str(counter_member)}. {member["name"]} [{round(war_duration,2)}mins]\n'
-            counter_member+=1        
+            # online_members += f'{str(counter_member)}. {member["name"]} [{round(war_duration,2)}mins]\n'
+            online_members += f'{str(counter_member)}. {member["name"]}\n'
+            counter_member +=1        
+        else:
+            online_members_under += f'{str(counter_member_under)}. {member["name"]} [{round(war_duration,2)}mins]\n'
+            counter_member_under +=1        
     
-    await ctx.send(online_members)
+    pretext += f"{counter_member-1}/{len(data)}\n"
+    subtext = f"\nUnder {online_threshold}mins:\n"
+    await ctx.send(pretext + online_members + subtext + online_members_under)
 
 @bot.command(name='99', help='Responds with a random quote from Brooklyn 99')
 async def nine_nine(ctx):
