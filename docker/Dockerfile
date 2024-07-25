@@ -16,5 +16,8 @@ COPY bot.py .
 # Copy the environment file to the container
 COPY .env .
 
+# Create woe_logs directory
+RUN mkdir woe_logs
+
 # Set the command to run your bot when the container starts
 CMD ["python", "bot.py"]
