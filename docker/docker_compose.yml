@@ -1,0 +1,8 @@
+version: "3"
+services:
+  warlogger:
+    image: kolmibeni/warlogger
+    user: 1000:1000 # should be owner of volumes
+    restart: unless-stopped
+    volumes:
+      - "/home/administrator/warlogger/logs:/app"
