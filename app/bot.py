@@ -23,7 +23,7 @@ bot = commands.Bot(command_prefix='>', intents=intents)
 def get_filename_today():
     todayDate = str(datetime.datetime.now().date())
     filename = todayDate + '_voice.json'
-    return filename
+    return ('woe_logs/' + filename)
 
 # RESPOND TO EVENTS
 @bot.event
