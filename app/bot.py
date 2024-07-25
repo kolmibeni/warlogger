@@ -17,6 +17,8 @@ CHANNEL_NAME = os.getenv('CHANNEL_NAME')
 
 # 2
 intents = discord.Intents.default()
+intents.message_content = True
+intents.messages = True
 bot = commands.Bot(command_prefix='>', intents=intents)
 
 
@@ -133,6 +135,7 @@ async def on_voice_state_update(member:discord.Member, before, after):
 
 @bot.command(name = "absendc", help='Get WOE/WOC Discord attendance list')
 async def  generate_absen_discord(ctx):
+    print("masuk")
     filename = get_filename_today()
     jsonFile = open(filename, 'r')
     data = json.load(jsonFile)
